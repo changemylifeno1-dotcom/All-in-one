@@ -19,7 +19,7 @@ import {
 import confetti from 'canvas-confetti';
 
 export const PhotoGalleryView: React.FC = () => {
-  const { files, deleteFile, toggleFavorite, setDetailsItem, moveToVault, t, language } = useApp();
+  const { files, addMediaItem, deleteFile, toggleFavorite, setDetailsItem, moveToVault, t, language } = useApp();
   const [editingPhoto, setEditingPhoto] = useState<MediaItem | null>(null);
   const [previewPhoto, setPreviewPhoto] = useState<MediaItem | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'favorites' | 'camera'>('all');
@@ -52,8 +52,8 @@ export const PhotoGalleryView: React.FC = () => {
       folder: 'Camera'
     };
 
-    // Save as copy
-    files.unshift(newItem);
+    // Save as copy via state dispatcher
+    addMediaItem(newItem);
     setEditingPhoto(null);
   };
 

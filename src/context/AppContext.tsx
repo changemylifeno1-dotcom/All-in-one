@@ -38,6 +38,7 @@ interface AppContextType {
   
   files: MediaItem[];
   addLocalFiles: (newFiles: FileList | File[]) => void;
+  addMediaItem: (item: MediaItem) => void;
   
   // Recycle Bin / Trash System
   deleteFile: (id: string) => void; // Moves to Recycle Bin by default!
@@ -290,6 +291,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast(language === 'hi' ? `${items.length} फ़ाइलें जोड़ी गईं` : `${items.length} files added`);
   };
 
+  const addMediaItem = (item: MediaItem) => {
+    setFiles(prev => [item, ...prev]);
+    showToast(language === 'hi' ? 'फ़ोटो की कॉपी सहेजी गई' : 'Photo copy saved');
+  };
+
   // 1. Move to Recycle Bin (30-day retention)
   const moveToTrash = (id: string) => {
     const now = new Date().toISOString();
@@ -388,6 +394,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         t,
         files,
         addLocalFiles,
+        addMediaItem,
         deleteFile,
         moveToTrash,
         restoreFromTrash,
