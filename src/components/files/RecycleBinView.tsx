@@ -17,7 +17,8 @@ import {
   Info,
   ShieldAlert,
   CheckSquare,
-  Square
+  Square,
+  ArrowLeft
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -29,12 +30,14 @@ export const RecycleBinView: React.FC = () => {
     deletePermanently, 
     emptyTrash, 
     settings,
+    setActiveTab,
     t, 
     language 
   } = useApp();
 
   const [confirmEmptyModal, setConfirmEmptyModal] = useState(false);
   const [permanentDeleteId, setPermanentDeleteId] = useState<string | null>(null);
+  const [confirmBatchDeleteModal, setConfirmBatchDeleteModal] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
 
@@ -69,6 +72,17 @@ export const RecycleBinView: React.FC = () => {
     }
   };
 
+  const getFileTypeLabel = (file: MediaItem) => {
+    const ext = file.name.split('.').pop()?.toUpperCase() || file.category.toUpperCase();
+    switch (file.category) {
+      case 'video': return `Video (${ext})`;
+      case 'photo': return `Photo (${ext})`;
+      case 'audio': return `Audio (${ext})`;
+      case 'document': return `Document (${ext})`;
+      default: return `File (${ext})`;
+    }
+  };
+
   const handleRestoreItem = (id: string) => {
     confetti({ particleCount: 40, spread: 45 });
     restoreFromTrash(id);
@@ -93,6 +107,21 @@ export const RecycleBinView: React.FC = () => {
 
   return (
     <div className="space-y-5 pb-24">
+      {/* Back Button Navigation */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => setActiveTab('home')}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 text-xs font-semibold text-zinc-300 hover:text-white transition"
+        >
+          <ArrowLeft className="w-4 h-4 text-indigo-400" />
+          <span>{t.backToHome}</span>
+        </button>
+
+        <span className="text-[11px] font-mono text-zinc-500">
+          ROHIT ONE • {t.trashTitle}
+        </span>
+      </div>
+
       {/* Header Banner */}
       <div className="p-5 rounded-3xl bg-gradient-to-r from-rose-950/40 via-zinc-950 to-amber-950/40 border border-rose-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
         <div className="flex items-start gap-3.5">
@@ -163,7 +192,7 @@ export const RecycleBinView: React.FC = () => {
           </div>
 
           <span className="text-[11px] text-zinc-400 font-mono">
-            {trashFiles.length} {language === 'hi' ? 'फ़ाइलें ट्रैश में' : 'items in trash'}
+            {trashFiles.length} {language === 'hi' ? 'फ़ाइलें रीसायकल बिन में' : 'items in Recycle Bin'}
           </span>
         </div>
       )}
@@ -183,7 +212,7 @@ export const RecycleBinView: React.FC = () => {
               <span>{t.restore} ({selectedIds.length})</span>
             </button>
             <button
-              onClick={handleDeleteSelected}
+              onClick={() => setConfirmBatchDeleteModal(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold shadow-md"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -202,7 +231,7 @@ export const RecycleBinView: React.FC = () => {
           <h3 className="text-base font-bold text-zinc-300">{t.noTrashFiles}</h3>
           <p className="text-xs text-zinc-500 max-w-sm mx-auto leading-relaxed">
             {language === 'hi' 
-              ? 'जब आप किसी वीडियो, फ़ोटो या फ़ाइल को डिलीट करेंगे, तो वह तुरंत हमेशा के लिए हटने की जगह यहाँ 30 दिनों तक सुरक्षित रहेगी।'
+              ? 'जब आप किसी वीडियो, फ़ोटो या फ़ाइल को डिलीट करेंगे, तो वह हमेशा के लिए हटने की जगह यहाँ 30 दिनों तक सुरक्षित रहेगी।'
               : 'When you delete any video, photo, or file, it is safely stored here for 30 days before permanent deletion.'}
           </p>
         </div>
@@ -236,33 +265,38 @@ export const RecycleBinView: React.FC = () => {
                   )}
 
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-xs font-bold text-zinc-100 truncate">
+                    {/* 1. Original File Name */}
+                    <h4 className="text-xs font-bold text-zinc-100 truncate" title={file.name}>
                       {file.name}
                     </h4>
 
-                    {/* Metadata details per requirement */}
-                    <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-zinc-400 mt-2 font-mono">
+                    {/* Metadata details: 2. File Type, 3. File Size, 4. Date Deleted, Location */}
+                    <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-[11px] text-zinc-400 mt-2 font-mono">
+                      {/* File Type */}
+                      <div className="flex items-center gap-1">
+                        <span className="text-zinc-500 font-sans">{t.fileType}:</span>
+                        <span className="text-indigo-300 font-bold">{getFileTypeLabel(file)}</span>
+                      </div>
+                      {/* File Size */}
                       <div className="flex items-center gap-1">
                         <span className="text-zinc-500 font-sans">{t.fileSize}:</span>
                         <span>{formatSize(file.size)}</span>
                       </div>
+                      {/* Date Deleted */}
+                      <div className="flex items-center gap-1">
+                        <span className="text-zinc-500 font-sans">{t.dateDeleted}:</span>
+                        <span>{file.deletedAt ? file.deletedAt.substring(0, 10) : 'Recent'}</span>
+                      </div>
+                      {/* Original Location */}
                       <div className="flex items-center gap-1 truncate">
                         <span className="text-zinc-500 font-sans">{t.originalLocation}:</span>
                         <span className="truncate">{file.originalFolder || file.folder}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-zinc-500 font-sans">{t.dateDeleted}:</span>
-                        <span>{file.deletedAt ? file.deletedAt.substring(0, 10) : 'Recently'}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-zinc-500 font-sans">{t.mimeType}:</span>
-                        <span className="uppercase">{file.category}</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Bottom Bar: Days remaining badge & Actions */}
+                {/* Bottom Bar: 5. Remaining Retention Days Badge & Actions */}
                 <div className="pt-2 border-t border-zinc-900 flex items-center justify-between text-xs">
                   {/* 30-day Countdown Badge */}
                   <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 font-semibold text-[11px]">
@@ -274,7 +308,7 @@ export const RecycleBinView: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Actions */}
+                  {/* Actions: Restore & Permanent Delete */}
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleRestoreItem(file.id)}
@@ -322,6 +356,40 @@ export const RecycleBinView: React.FC = () => {
                 onClick={() => {
                   deletePermanently(permanentDeleteId);
                   setPermanentDeleteId(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold"
+              >
+                {t.deletePermanently}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BATCH PERMANENT DELETE CONFIRM MODAL */}
+      {confirmBatchDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="w-full max-w-sm rounded-2xl bg-zinc-950 border border-zinc-800 p-5 shadow-2xl space-y-4">
+            <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+              <AlertTriangle className="w-5 h-5 shrink-0" />
+              <span>{t.deletePermanently} ({selectedIds.length})</span>
+            </div>
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              {language === 'hi'
+                ? `क्या आप वाकई इन ${selectedIds.length} चुनी गई फ़ाइलों को हमेशा के लिए हटाना चाहते हैं? यह क्रिया वापस नहीं होगी।`
+                : `Are you sure you want to permanently delete these ${selectedIds.length} selected files? This cannot be undone.`}
+            </p>
+            <div className="flex items-center justify-end gap-2 text-xs pt-2">
+              <button
+                onClick={() => setConfirmBatchDeleteModal(false)}
+                className="px-3 py-2 rounded-xl bg-zinc-800 text-zinc-300"
+              >
+                {t.cancel}
+              </button>
+              <button
+                onClick={() => {
+                  handleDeleteSelected();
+                  setConfirmBatchDeleteModal(false);
                 }}
                 className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold"
               >

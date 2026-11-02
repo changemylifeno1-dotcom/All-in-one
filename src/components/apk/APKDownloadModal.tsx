@@ -278,6 +278,13 @@ zipStoreBase=GRADLE_USER_HOME
 zipStorePath=wrapper/dists
 `);
 
+      zip.file("gradle.properties", `# AndroidX configuration
+android.useAndroidX=true
+android.enableJetifier=true
+android.nonTransitiveRClass=true
+org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+`);
+
       // 3. GitHub Actions Workflow
       zip.file(".github/workflows/build-apk.yml", githubWorkflowCode);
 

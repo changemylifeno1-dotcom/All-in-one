@@ -1,16 +1,19 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
   Languages, 
   Download, 
   Search, 
-  Plus, 
   Moon, 
   Sun, 
-  ShieldCheck, 
   Smartphone,
   FolderOpen,
-  Trash2
+  Trash2,
+  MoreVertical,
+  Settings,
+  ChevronRight,
+  Clock,
+  Sparkles
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -28,7 +31,10 @@ export const Header: React.FC = () => {
     addLocalFiles
   } = useApp();
 
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const trashCount = files.filter(f => f.isDeleted).length;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,9 +43,57 @@ export const Header: React.FC = () => {
     }
   };
 
+  // Close dropdown on click outside or escape key
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMenuOpen]);
+
+  const handleOpenTrash = () => {
+    setActiveTab('trash');
+    setIsMenuOpen(false);
+  };
+
+  const handleOpenSettings = () => {
+    setActiveTab('settings');
+    setIsMenuOpen(false);
+  };
+
+  const handleOpenApk = () => {
+    setIsAPKModalOpen(true);
+    setIsMenuOpen(false);
+  };
+
   return (
     <header className="sticky top-0 z-40 bg-black/90 dark:bg-black/95 backdrop-blur-md border-b border-zinc-800/80 px-4 py-2.5">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+        {/* Hidden File Input for Local Import */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          multiple
+          className="hidden"
+        />
+
         {/* Brand & Tagline (Clickable to go Home) */}
         <div className="flex items-center justify-between w-full md:w-auto">
           <div 
@@ -72,22 +126,8 @@ export const Header: React.FC = () => {
             </div>
           </div>
 
-          {/* Mobile Actions: Trash, Language, APK */}
+          {/* Mobile Right Controls: APK Button + Android Three-Dot Overflow Menu (⋮) */}
           <div className="flex items-center gap-1.5 md:hidden">
-            {/* Mobile Trash */}
-            <button
-              onClick={() => setActiveTab('trash')}
-              className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 relative transition"
-              title={t.trashTitle}
-            >
-              <Trash2 className="w-4 h-4 text-rose-400" />
-              {trashCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-600 text-white font-bold text-[9px] rounded-full flex items-center justify-center">
-                  {trashCount}
-                </span>
-              )}
-            </button>
-
             <button
               onClick={() => setIsAPKModalOpen(true)}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-600 text-white text-xs font-bold shadow-md shadow-indigo-600/30 active:scale-95 transition"
@@ -96,12 +136,24 @@ export const Header: React.FC = () => {
               <span>APK</span>
             </button>
 
-            <button
-              onClick={toggleLanguage}
-              className="px-2.5 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-200 active:scale-95 transition"
-            >
-              {language === 'hi' ? 'EN' : 'हिंदी'}
-            </button>
+            {/* Android 3-Dot Overflow Menu Button */}
+            <div className="relative" ref={!isMenuOpen ? undefined : menuRef}>
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className={`p-2 rounded-xl border transition relative ${
+                  isMenuOpen 
+                    ? 'bg-zinc-800 border-zinc-700 text-white' 
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white'
+                }`}
+                title={t.overflowMenu}
+                aria-label="Overflow menu"
+              >
+                <MoreVertical className="w-4 h-4" />
+                {trashCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -125,31 +177,9 @@ export const Header: React.FC = () => {
           )}
         </div>
 
-        {/* Actions & Utilities */}
+        {/* Desktop Actions & Three-Dot Overflow Menu (⋮) */}
         <div className="hidden md:flex items-center gap-2">
-          {/* Recycle Bin Button */}
-          <button
-            onClick={() => setActiveTab('trash')}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-semibold text-zinc-200 relative transition"
-            title={t.trashTitle}
-          >
-            <Trash2 className="w-4 h-4 text-rose-400" />
-            <span>{t.trash}</span>
-            {trashCount > 0 && (
-              <span className="w-4 h-4 bg-rose-600 text-white font-bold text-[9px] rounded-full flex items-center justify-center">
-                {trashCount}
-              </span>
-            )}
-          </button>
-
           {/* Add / Import Local Files */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            multiple
-            className="hidden"
-          />
           <button
             onClick={() => fileInputRef.current?.click()}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-semibold text-zinc-200 transition"
@@ -181,16 +211,176 @@ export const Header: React.FC = () => {
           {/* APK Build & Download Button */}
           <button
             onClick={() => setIsAPKModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition transform hover:-translate-y-0.5"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition transform hover:-translate-y-0.5"
           >
             <Download className="w-4 h-4" />
             <span>{t.apkDownloadBtn}</span>
-            <span className="text-[10px] px-1.5 py-0.2 bg-black/30 rounded-md font-mono">
-              APK
-            </span>
           </button>
+
+          {/* Android Three-Dot Overflow Menu Button (Desktop) */}
+          <div className="relative" ref={isMenuOpen ? menuRef : undefined}>
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className={`p-2 rounded-xl border transition relative ${
+                isMenuOpen 
+                  ? 'bg-zinc-800 border-zinc-700 text-white' 
+                  : 'bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300'
+              }`}
+              title={t.overflowMenu}
+              aria-label="Overflow menu"
+            >
+              <MoreVertical className="w-4 h-4" />
+              {trashCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* ANDROID OVERFLOW MENU DROPDOWN (Accessible on both Mobile & Desktop) */}
+      {isMenuOpen && (
+        <div 
+          ref={menuRef}
+          className="absolute right-4 top-14 w-72 md:w-80 rounded-2xl bg-zinc-950 border border-zinc-800 shadow-2xl shadow-black/80 py-2 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl"
+        >
+          {/* Header indicator */}
+          <div className="px-3.5 py-2 border-b border-zinc-800/80 flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+              {t.overflowMenu}
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">
+              ROHIT ONE
+            </span>
+          </div>
+
+          <div className="p-1.5 space-y-1">
+            {/* 1. RECYCLE BIN / RECENTLY DELETED (Highlighted Menu Entry) */}
+            <button
+              onClick={handleOpenTrash}
+              className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-rose-950/30 active:bg-rose-950/50 transition group text-left border border-transparent hover:border-rose-500/30"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                  <Trash2 className="w-4 h-4" />
+                </div>
+                <div className="truncate">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-white group-hover:text-rose-300 transition">
+                      {language === 'hi' ? 'रीसायकल बिन (Recycle Bin)' : 'Recycle Bin'}
+                    </span>
+                    {trashCount > 0 && (
+                      <span className="px-1.5 py-0.2 bg-rose-600 text-white font-mono text-[9px] font-bold rounded-full">
+                        {trashCount}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-zinc-400 group-hover:text-zinc-300">
+                    {language === 'hi' ? '30-दिनों का हाल ही में हटाया गया डेटा' : 'Recently deleted (30-day retention)'}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-rose-400 transition shrink-0" />
+            </button>
+
+            {/* 2. SETTINGS */}
+            <button
+              onClick={handleOpenSettings}
+              className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-zinc-900 active:bg-zinc-800 transition group text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                  <Settings className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-zinc-200 group-hover:text-white">
+                    {t.settings}
+                  </span>
+                  <p className="text-[10px] text-zinc-500">
+                    {language === 'hi' ? 'कस्टमाइज़ेशन, वॉल्ट व प्राथमिक रुचियाँ' : 'Preferences, vault, playback'}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-300 transition shrink-0" />
+            </button>
+
+            {/* 3. IMPORT FILES */}
+            <button
+              onClick={() => {
+                fileInputRef.current?.click();
+                setIsMenuOpen(false);
+              }}
+              className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-zinc-900 active:bg-zinc-800 transition group text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                  <FolderOpen className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-zinc-200 group-hover:text-white">
+                    {t.addFiles}
+                  </span>
+                  <p className="text-[10px] text-zinc-500">
+                    {language === 'hi' ? 'डिवाइस से फ़ाइलें जोड़ें' : 'Add local media from storage'}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-300 transition shrink-0" />
+            </button>
+
+            {/* 4. APK CENTER */}
+            <button
+              onClick={handleOpenApk}
+              className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-zinc-900 active:bg-zinc-800 transition group text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                  <Smartphone className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-zinc-200 group-hover:text-white">
+                    {t.apkDownloadBtn}
+                  </span>
+                  <p className="text-[10px] text-zinc-500">
+                    {language === 'hi' ? 'Android APK व इंस्टॉलेशन पैकेज' : 'Direct APK & GitHub cloud build'}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-300 transition shrink-0" />
+            </button>
+          </div>
+
+          <div className="my-1.5 border-t border-zinc-900" />
+
+          {/* Quick Controls in Menu */}
+          <div className="px-2 py-1 flex items-center justify-between gap-2">
+            <button
+              onClick={toggleLanguage}
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-semibold text-zinc-200 transition"
+            >
+              <Languages className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{language === 'hi' ? 'English' : 'हिंदी'}</span>
+            </button>
+
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-semibold text-zinc-200 transition"
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Light</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Dark</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

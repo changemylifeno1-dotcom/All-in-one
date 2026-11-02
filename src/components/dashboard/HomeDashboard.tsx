@@ -17,8 +17,7 @@ import {
   Plus, 
   ArrowRight,
   FolderOpen,
-  Smartphone,
-  Trash2
+  Smartphone
 } from 'lucide-react';
 
 export const HomeDashboard: React.FC = () => {
@@ -233,23 +232,6 @@ export const HomeDashboard: React.FC = () => {
             </div>
             <span className="text-xs font-bold text-zinc-200 mt-2">{t.vault}</span>
             <span className="text-[10px] text-rose-400 font-mono">PIN Lock</span>
-          </button>
-
-          {/* Recycle Bin / Trash */}
-          <button
-            onClick={() => setActiveTab('trash')}
-            className="p-4 rounded-2xl bg-zinc-950 border border-zinc-800/80 hover:border-amber-500/50 hover:bg-zinc-900 transition flex flex-col items-center text-center group"
-          >
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center group-hover:scale-110 transition relative">
-              <Trash2 className="w-6 h-6" />
-              {files.filter(f => f.isDeleted).length > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-rose-600 text-white font-bold text-[10px] flex items-center justify-center">
-                  {files.filter(f => f.isDeleted).length}
-                </span>
-              )}
-            </div>
-            <span className="text-xs font-bold text-zinc-200 mt-2">{t.trash}</span>
-            <span className="text-[10px] text-amber-400 font-mono">30 Days</span>
           </button>
         </div>
       </div>

@@ -23,7 +23,9 @@ import {
   Lock,
   Clock,
   Eye,
-  Volume2
+  Volume2,
+  ArrowRight,
+  RotateCcw
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -38,12 +40,15 @@ export const SettingsView: React.FC = () => {
     setIsAPKModalOpen, 
     vaultPin,
     setVaultPin,
+    setActiveTab,
+    files,
     t 
   } = useApp();
 
   const [cacheMessage, setCacheMessage] = useState(false);
   const [editingPin, setEditingPin] = useState(false);
   const [newPinInput, setNewPinInput] = useState('');
+  const trashCount = files.filter(f => f.isDeleted).length;
 
   const handleClearCache = () => {
     confetti({ particleCount: 40, spread: 40 });
@@ -545,7 +550,54 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
-      {/* 7. APK Download & Install Center Launcher */}
+      {/* 7. Recycle Bin (Recently Deleted) Submenu */}
+      <div className="rounded-3xl bg-zinc-950 border border-zinc-800/80 p-5 space-y-4 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center shrink-0">
+              <Trash2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">
+                  {language === 'hi' ? 'रीसायकल बिन (हाल ही में हटाए गए)' : 'Recycle Bin (Recently Deleted)'}
+                </h3>
+                {trashCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-rose-600/20 text-rose-400 border border-rose-500/30 font-mono text-[10px] font-bold">
+                    {trashCount} {language === 'hi' ? 'फ़ाइलें' : 'items'}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-zinc-400">
+                {language === 'hi'
+                  ? 'डिलीट की गई फ़ाइलें 30 दिनों तक सुरक्षित रहती हैं। यहाँ से कभी भी रिस्टोर करें।'
+                  : 'Deleted files are retained for 30 days before permanent deletion. Restore anytime.'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setActiveTab('trash')}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-xs transition shadow-md shadow-rose-600/20 shrink-0 self-start sm:self-auto"
+          >
+            <span>{t.openRecycleBin}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="pt-3 border-t border-zinc-900 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-zinc-400">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>{language === 'hi' ? '30-दिनों की ऑटो-रिटेंशन सुरक्षा' : '30-Day Auto Retention Guarantee'}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <RotateCcw className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{language === 'hi' ? '1-क्लिक मूल फ़ोल्डर रिस्टोर' : '1-Tap Original Location Restore'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 8. APK Download & Install Center Launcher */}
       <div className="rounded-3xl bg-gradient-to-r from-indigo-950/60 via-purple-950/40 to-emerald-950/60 border border-indigo-500/40 p-5 space-y-3 shadow-xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">

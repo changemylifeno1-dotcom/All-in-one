@@ -134,6 +134,11 @@ export interface Translations {
   // Recycle Bin / Trash
   trashTitle: string;
   trashSubtitle: string;
+  recentlyDeleted: string;
+  openRecycleBin: string;
+  backToHome: string;
+  overflowMenu: string;
+  fileType: string;
   restore: string;
   restoreAll: string;
   restoreSuccess: string;
@@ -324,6 +329,11 @@ export const translations: Record<'hi' | 'en', Translations> = {
 
     trashTitle: "रीसायकल बिन (Recycle Bin)",
     trashSubtitle: "डिलीट की गई फ़ाइलें 30 दिनों तक सुरक्षित रहती हैं। इसके बाद स्वतः हट जाती हैं।",
+    recentlyDeleted: "हाल ही में हटाए गए (Recently Deleted)",
+    openRecycleBin: "रीसायकल बिन खोलें",
+    backToHome: "होम स्क्रीन पर वापस जाएं",
+    overflowMenu: "अधिक विकल्प",
+    fileType: "फ़ाइल प्रकार",
     restore: "वापस लाएं (Restore)",
     restoreAll: "सभी फ़ाइलें रिस्टोर करें",
     restoreSuccess: "फ़ाइल को अपने मूल फ़ोल्डर में सफलतापूर्वक रिस्टोर कर दिया गया है!",
@@ -510,6 +520,11 @@ export const translations: Record<'hi' | 'en', Translations> = {
 
     trashTitle: "Recycle Bin",
     trashSubtitle: "Deleted files are kept for 30 days before permanent removal.",
+    recentlyDeleted: "Recently Deleted",
+    openRecycleBin: "Open Recycle Bin",
+    backToHome: "Back to Home",
+    overflowMenu: "More Options",
+    fileType: "File Type",
     restore: "Restore",
     restoreAll: "Restore All",
     restoreSuccess: "File successfully restored to original location!",
