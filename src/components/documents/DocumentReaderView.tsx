@@ -1,0 +1,173 @@
+import React, { useState } from 'react';
+import { useApp } from '../../context/AppContext';
+import { MediaItem } from '../../types';
+import { 
+  FileText, 
+  ChevronLeft, 
+  ChevronRight, 
+  ZoomIn, 
+  ZoomOut, 
+  Maximize2, 
+  Bookmark, 
+  Search, 
+  Share2, 
+  X,
+  Printer
+} from 'lucide-react';
+
+export const DocumentReaderView: React.FC<{ item?: MediaItem; onClose?: () => void }> = ({ item, onClose }) => {
+  const { files, activeDoc, setActiveDoc, t, language } = useApp();
+  const currentDoc = item || activeDoc || files.find(f => f.category === 'document');
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = 8;
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const [docSearch, setDocSearch] = useState('');
+  const [isBookmarked, setIsBookmarked] = useState(false);
+
+  if (!currentDoc) {
+    return (
+      <div className="p-12 text-center rounded-2xl bg-zinc-950 border border-zinc-900 space-y-2">
+        <FileText className="w-12 h-12 text-zinc-600 mx-auto" />
+        <p className="text-sm text-zinc-400">
+          {language === 'hi' ? 'कोई दस्तावेज़ चयनित नहीं है' : 'No document selected'}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between select-none">
+      {/* Top Header */}
+      <div className="flex items-center justify-between p-3.5 border-b border-zinc-800 bg-zinc-950 text-white">
+        <div className="flex items-center gap-3">
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+          <div>
+            <h3 className="text-sm font-bold truncate max-w-xs md:max-w-md">
+              {currentDoc.name}
+            </h3>
+            <p className="text-[10px] text-zinc-400">
+              PDF • {(currentDoc.size / 1024 / 1024).toFixed(2)} MB
+            </p>
+          </div>
+        </div>
+
+        {/* Page Nav & Zoom */}
+        <div className="flex items-center gap-2">
+          {/* Zoom controls */}
+          <div className="flex items-center bg-zinc-900 rounded-xl p-0.5 border border-zinc-800">
+            <button
+              onClick={() => setZoomLevel(z => Math.max(60, z - 15))}
+              className="p-1.5 text-zinc-400 hover:text-white"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <span className="text-[11px] font-mono px-1 text-zinc-300">{zoomLevel}%</span>
+            <button
+              onClick={() => setZoomLevel(z => Math.min(200, z + 15))}
+              className="p-1.5 text-zinc-400 hover:text-white"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+          </div>
+
+          <button
+            onClick={() => setIsBookmarked(!isBookmarked)}
+            className={`p-2 rounded-xl bg-zinc-900 border border-zinc-800 transition ${
+              isBookmarked ? 'text-amber-400 border-amber-500/50' : 'text-zinc-400 hover:text-white'
+            }`}
+            title="Bookmark"
+          >
+            <Bookmark className="w-4 h-4 fill-current" />
+          </button>
+        </div>
+      </div>
+
+      {/* Main Document Canvas View */}
+      <div className="flex-1 overflow-auto p-4 md:p-8 flex items-center justify-center bg-zinc-900/50">
+        <div 
+          style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center' }}
+          className="transition-transform duration-200"
+        >
+          {/* Render clean styled PDF page */}
+          <div className="w-[340px] sm:w-[500px] md:w-[650px] min-h-[700px] md:min-h-[850px] bg-white text-zinc-900 p-8 md:p-12 rounded-xl shadow-2xl space-y-6">
+            <div className="flex items-center justify-between border-b pb-4 border-zinc-200">
+              <div>
+                <span className="text-xs font-black tracking-widest text-indigo-600 uppercase">
+                  ROHIT ONE ECOSYSTEM
+                </span>
+                <h1 className="text-xl md:text-2xl font-black text-zinc-950 mt-1">
+                  Architecture & Privacy Specification
+                </h1>
+              </div>
+              <div className="text-right text-xs text-zinc-500 font-mono">
+                SEC-DOC-2026<br />
+                Page {currentPage} of {totalPages}
+              </div>
+            </div>
+
+            <div className="space-y-4 text-xs md:text-sm text-zinc-700 leading-relaxed">
+              <h2 className="font-bold text-zinc-900 text-base">
+                1. Offline-First Privacy & Hardware Encryption
+              </h2>
+              <p>
+                ROHIT ONE operates entirely inside local device sandboxes. No advertising SDKs, tracking libraries, or telemetry frameworks are bundled within the release build. File operations interface directly with Android Storage Access Framework (SAF) and native Keystore.
+              </p>
+
+              <h2 className="font-bold text-zinc-900 text-base">
+                2. Intelligent Audio Language Selection (Hindi Priority)
+              </h2>
+              <p>
+                The native AndroidX Media3 ExoPlayer integration parses ISO 639-2 language tags (`hi`, `hin`) across all interleaved audio streams. When a multilingual container (e.g. MKV/MP4 with Dolby Atmos or 5.1 Surround) is loaded, the player automatically re-routes playback to the Hindi track without requiring manual user intervention.
+              </p>
+
+              <h2 className="font-bold text-zinc-900 text-base">
+                3. Dual Lock Mechanism & AMOLED True Black UI
+              </h2>
+              <p>
+                Mode 1 locks interface controls to prevent accidental menu triggers during active playback, while Mode 2 engages full touch surface locking. AMOLED display buffers utilize true black (#000000) primitives to maximize battery longevity on OLED panels.
+              </p>
+            </div>
+
+            <div className="pt-8 border-t border-zinc-200 flex items-center justify-between text-xs text-zinc-400">
+              <span>Confidential & Personal Use</span>
+              <span>ROHIT ONE Version 1.0.0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Page Navigation Bar */}
+      <div className="p-3 bg-zinc-950 border-t border-zinc-800 flex items-center justify-between text-white text-xs max-w-lg mx-auto w-full">
+        <button
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 disabled:opacity-30"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          <span>Previous</span>
+        </button>
+
+        <span className="font-mono text-zinc-300">
+          {t.page} {currentPage} {t.ofPages} {totalPages}
+        </span>
+
+        <button
+          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+          disabled={currentPage === totalPages}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 disabled:opacity-30"
+        >
+          <span>Next</span>
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+};

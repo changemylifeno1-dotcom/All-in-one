@@ -1,0 +1,6 @@
+{
+  "name": "ROHIT ONE",
+  "description": "Premium All-in-One Android Media Player, Photo Editor & File Manager with AMOLED UI, Hindi/English language system, and APK installer.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

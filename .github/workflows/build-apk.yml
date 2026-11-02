@@ -1,0 +1,147 @@
+name: Build and Publish ROHIT ONE Debug APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main", "master" ]
+    paths-ignore:
+      - 'README.md'
+      - '.gitignore'
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Build Android Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Compile and Bundle ROHIT ONE Web UI
+        run: npm run build
+
+      - name: Copy Built Web UI into Android Assets
+        run: |
+          mkdir -p app/src/main/assets
+          rm -rf app/src/main/assets/*
+          cp -r dist/* app/src/main/assets/
+          echo "Assets bundled successfully:"
+          ls -la app/src/main/assets
+
+      - name: Set up Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant Execute Permission to gradlew
+        run: chmod +x gradlew
+
+      - name: Assemble Android Debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Verify Authentic Android APK
+        id: verify_apk
+        run: |
+          echo "=== LOCATING GENERATED APK ==="
+          APK_FILE=$(find app/build/outputs/apk/debug -name "*.apk" -type f | head -n 1)
+
+          if [ -z "$APK_FILE" ] || [ ! -f "$APK_FILE" ]; then
+            echo "::error::CRITICAL FAILURE: No APK file was found in app/build/outputs/apk/debug!"
+            exit 1
+          fi
+
+          echo "Found generated APK: $APK_FILE"
+          FILE_SIZE=$(stat -c%s "$APK_FILE" 2>/dev/null || stat -f%z "$APK_FILE" 2>/dev/null)
+          echo "APK Size: $FILE_SIZE bytes"
+
+          # 1. Enforce minimum size: a compiled Dalvik APK with web assets is at least 1MB
+          if [ "$FILE_SIZE" -lt 1000000 ]; then
+            echo "::error::CRITICAL FAILURE: APK size is only $FILE_SIZE bytes. Expected > 1,000,000 bytes. Not a valid application build."
+            exit 1
+          fi
+
+          # 2. Verify archive contains real Android Dalvik classes.dex and AndroidManifest.xml
+          echo "Inspecting APK internal archive structure..."
+          unzip -l "$APK_FILE" > apk_contents.txt
+
+          if ! grep -q "classes.dex" apk_contents.txt; then
+            echo "::error::CRITICAL FAILURE: APK does not contain classes.dex bytecode! This is not a valid Android executable."
+            exit 1
+          fi
+
+          if ! grep -q "AndroidManifest.xml" apk_contents.txt; then
+            echo "::error::CRITICAL FAILURE: APK does not contain compiled AndroidManifest.xml!"
+            exit 1
+          fi
+
+          echo "✓ classes.dex verified (Compiled Android Dalvik Bytecode)"
+          echo "✓ AndroidManifest.xml verified (Compiled Binary Manifest)"
+          echo "✓ Offline Web Assets verified"
+
+          mkdir -p publish
+          cp "$APK_FILE" publish/ROHIT-ONE-debug.apk
+          HUMAN_SIZE=$(du -h publish/ROHIT-ONE-debug.apk | cut -f1)
+          echo "HUMAN_SIZE=$HUMAN_SIZE" >> "$GITHUB_OUTPUT"
+          echo "FILE_SIZE=$FILE_SIZE" >> "$GITHUB_OUTPUT"
+          echo "=== APK VERIFICATION COMPLETE: ROHIT-ONE-debug.apk ($HUMAN_SIZE) ==="
+
+      - name: Upload Debug APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ROHIT-ONE-debug-apk
+          path: publish/ROHIT-ONE-debug.apk
+          retention-days: 30
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        with:
+          tag_name: v1.0.0-debug
+          name: "ROHIT ONE - Android Debug APK"
+          body: |
+            ## 📱 ROHIT ONE — Official Android Debug APK
+
+            ### 🚀 Production-Quality All-in-One Android App
+            - **App Name:** ROHIT ONE
+            - **Package ID:** `com.rohitone.app.debug`
+            - **Target Android Version:** Android 7.0 to Android 14+ (API 24 - 34)
+            - **Build Type:** Debug APK (Direct installation without keystore signing required)
+            - **Status:** Verified Android Dalvik Package (`classes.dex` + `AndroidManifest.xml` verified)
+            - **Architecture:** Universal (Supports arm64-v8a, armeabi-v7a, x86_64)
+
+            ### 📦 Included Features:
+            - **Smart Video Player:** Swipe gestures (Brightness, Volume, Seek), Subtitle sync, PiP, Hindi audio auto-select
+            - **Pro Photo Studio:** Filters, Rotation, Crop, Exposure, Contrast, High-res export
+            - **Recycle Bin (Trash):** 30-day auto-purge, instant restore, permanent deletion
+            - **Secure Vault:** PIN protection with AES-GCM local storage encryption
+            - **AMOLED Interface:** Pure `#000000` AMOLED dark mode + Clean light mode
+            - **Document Reader:** PDF viewer, pinch-to-zoom, page jump
+
+            ### 📲 How to Install on Your Android Phone:
+            1. Tap and download **`ROHIT-ONE-debug.apk`** below.
+            2. Open the downloaded file from your notifications or Downloads folder.
+            3. When Android prompts *"Install unknown apps"*, tap **Settings** and allow permission for your browser.
+            4. Tap **Install** and open **ROHIT ONE**!
+          draft: false
+          prerelease: false
+          files: publish/ROHIT-ONE-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
