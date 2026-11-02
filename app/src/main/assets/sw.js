@@ -1,0 +1,137 @@
+/**
+ * Copyright 2018 Google Inc. All Rights Reserved.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// If the loader is already loaded, just stop.
+if (!self.define) {
+  let registry = {};
+
+  // Used for `eval` and `importScripts` where we can't get script URL by other means.
+  // In both cases, it's safe to use a global var because those functions are synchronous.
+  let nextDefineUri;
+
+  const singleRequire = (uri, parentUri) => {
+    uri = new URL(uri + ".js", parentUri).href;
+    return registry[uri] || (
+      
+        new Promise(resolve => {
+          if ("document" in self) {
+            const script = document.createElement("script");
+            script.src = uri;
+            script.onload = resolve;
+            document.head.appendChild(script);
+          } else {
+            nextDefineUri = uri;
+            importScripts(uri);
+            resolve();
+          }
+        })
+      
+      .then(() => {
+        let promise = registry[uri];
+        if (!promise) {
+          throw new Error(`Module ${uri} didn’t register its module`);
+        }
+        return promise;
+      })
+    );
+  };
+
+  self.define = (depsNames, factory) => {
+    const uri = nextDefineUri || ("document" in self ? document.currentScript.src : "") || location.href;
+    if (registry[uri]) {
+      // Module is already loading or loaded.
+      return;
+    }
+    let exports = {};
+    const require = depUri => singleRequire(depUri, uri);
+    const specialDeps = {
+      module: { uri },
+      exports,
+      require
+    };
+    registry[uri] = Promise.all(depsNames.map(
+      depName => specialDeps[depName] || require(depName)
+    )).then(deps => {
+      factory(...deps);
+      return exports;
+    });
+  };
+}
+define(['./workbox-afac4cd2'], (function (workbox) { 'use strict';
+
+  self.skipWaiting();
+  workbox.clientsClaim();
+  /**
+   * The precacheAndRoute() method efficiently caches and responds to
+   * requests for URLs in the manifest.
+   * See https://goo.gl/S9QRab
+   */
+  workbox.precacheAndRoute([{
+    "url": "registerSW.js",
+    "revision": "402b66900e731ca748771b6fc5e7a068"
+  }, {
+    "url": "pwa-maskable-512x512.png",
+    "revision": "4e4dc42e83f991bd41c2514ab1b6dd7e"
+  }, {
+    "url": "pwa-512x512.png",
+    "revision": "337f97d243ce4b3ad042a5e63f262ccd"
+  }, {
+    "url": "pwa-192x192.png",
+    "revision": "f0f6ddeeead6d6745d0a8dfc60522835"
+  }, {
+    "url": "index.html",
+    "revision": "fc3e704be6f0275d1ca42af63d1bebeb"
+  }, {
+    "url": "icon.svg",
+    "revision": "34108493b36ddc32251590ee4e661451"
+  }, {
+    "url": "apple-touch-icon.png",
+    "revision": "960709d7f3cd5aa59a5041c97f667cde"
+  }, {
+    "url": "assets/index-J_Rkpca6.css",
+    "revision": null
+  }, {
+    "url": "assets/index-DrLKI08t.js",
+    "revision": null
+  }, {
+    "url": "apple-touch-icon.png",
+    "revision": "960709d7f3cd5aa59a5041c97f667cde"
+  }, {
+    "url": "icon.svg",
+    "revision": "34108493b36ddc32251590ee4e661451"
+  }, {
+    "url": "pwa-192x192.png",
+    "revision": "f0f6ddeeead6d6745d0a8dfc60522835"
+  }, {
+    "url": "pwa-512x512.png",
+    "revision": "337f97d243ce4b3ad042a5e63f262ccd"
+  }, {
+    "url": "pwa-maskable-512x512.png",
+    "revision": "4e4dc42e83f991bd41c2514ab1b6dd7e"
+  }, {
+    "url": "manifest.webmanifest",
+    "revision": "e1a5da66eeef8624cc979c4cb55a454a"
+  }], {});
+  workbox.cleanupOutdatedCaches();
+  workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html")));
+  workbox.registerRoute(/^https:\/\/images\.unsplash\.com\/.*/i, new workbox.CacheFirst({
+    "cacheName": "unsplash-images",
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 50,
+      maxAgeSeconds: 2592000
+    }), new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
+    })]
+  }), 'GET');
+
+}));

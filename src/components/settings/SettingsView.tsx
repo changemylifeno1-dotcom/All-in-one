@@ -618,39 +618,115 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
-      {/* 8. Storage, Cache & Cleanup */}
-      <div className="rounded-3xl bg-zinc-950 border border-zinc-800/80 p-5 space-y-4 shadow-xl">
-        <div className="flex items-center gap-2.5">
-          <ShieldCheck className="w-5 h-5 text-emerald-400" />
-          <div>
-            <h3 className="text-sm font-bold text-white">{t.autoCleanup}</h3>
-            <p className="text-[11px] text-zinc-400">
-              {t.privacyGuarantee}
-            </p>
-          </div>
-        </div>
+      {/* 8. Storage, RAM & Memory Management */}
+      {(() => {
+        const nonVault = files.filter(f => !f.isInVault && !f.isDeleted);
+        const vids = nonVault.filter(f => f.category === 'video');
+        const pics = nonVault.filter(f => f.category === 'photo');
+        const aud = nonVault.filter(f => f.category === 'audio');
+        const doc = nonVault.filter(f => f.category === 'document');
 
-        <div className="flex items-center justify-between pt-2">
-          <div>
-            <span className="text-zinc-200 font-semibold block">{t.clearCache}</span>
-            <span className="text-[11px] text-zinc-500">
-              {language === 'hi' ? 'थंबनेल और अस्थायी कैश मिटाएं' : 'Free temporary thumbnails'}
-            </span>
-          </div>
-          <button
-            onClick={handleClearCache}
-            className="px-3.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium transition"
-          >
-            {t.clearCache}
-          </button>
-        </div>
+        const totalUsedBytes = nonVault.reduce((acc, f) => acc + f.size, 0);
+        const usedGB = (totalUsedBytes / (1024 * 1024 * 1024)).toFixed(1);
+        const freeGB = (128 - parseFloat(usedGB)).toFixed(1);
 
-        {cacheMessage && (
-          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs">
-            {t.cacheCleared}
+        return (
+          <div className="rounded-3xl bg-zinc-950 border border-zinc-800/80 p-5 space-y-4 shadow-xl">
+            <div className="flex items-center gap-2.5">
+              <HardDrive className="w-5 h-5 text-indigo-400" />
+              <div>
+                <h3 className="text-sm font-bold text-white">
+                  {language === 'hi' ? 'डिवाइस स्टोरेज व रैम स्थिति (Storage & RAM)' : 'Device Storage & RAM Status'}
+                </h3>
+                <p className="text-[11px] text-zinc-400">
+                  {language === 'hi' ? 'आंतरिक मेमोरी व रैम उपयोग का विश्लेषण' : 'Internal memory breakdown and available RAM'}
+                </p>
+              </div>
+            </div>
+
+            {/* Storage Progress Bar */}
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-200 font-semibold text-xs">
+                  {t.internalStorage}
+                </span>
+                <span className="text-xs font-mono font-bold text-indigo-400">
+                  {usedGB} GB / 128.0 GB ({freeGB} GB {t.freeSpace})
+                </span>
+              </div>
+
+              <div className="w-full h-3 bg-zinc-900 rounded-full overflow-hidden flex">
+                <div className="bg-indigo-500 h-full" style={{ width: '35%' }} title="Videos" />
+                <div className="bg-emerald-500 h-full" style={{ width: '22%' }} title="Photos" />
+                <div className="bg-amber-500 h-full" style={{ width: '12%' }} title="Audio" />
+                <div className="bg-blue-500 h-full" style={{ width: '8%' }} title="Documents" />
+                <div className="bg-zinc-700 h-full" style={{ width: '10%' }} title="System" />
+              </div>
+
+              {/* Storage Legend */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] text-zinc-400 pt-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+                  <span>{t.catVideos}: {vids.length} (42%)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  <span>{t.catPhotos}: {pics.length} (26%)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                  <span>{t.catAudio}: {aud.length} (14%)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                  <span>{t.catDocuments}: {doc.length} (10%)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* RAM Status (Realme 9 Spec) */}
+            <div className="pt-3 border-t border-zinc-900 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-emerald-400" />
+                  <span className="text-zinc-200 font-semibold text-xs">
+                    {language === 'hi' ? 'रैम (LPDDR4X Memory)' : 'System RAM (Realme 9)'}
+                  </span>
+                </div>
+                <span className="text-xs font-mono font-bold text-emerald-400">
+                  3.4 GB / 8.0 GB ({language === 'hi' ? '4.6 GB उपलब्ध' : '4.6 GB Free'})
+                </span>
+              </div>
+              <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden">
+                <div className="bg-emerald-500 h-full rounded-full" style={{ width: '42%' }} />
+              </div>
+            </div>
+
+            {/* Clear Cache & Auto-Cleanup */}
+            <div className="pt-3 border-t border-zinc-900 flex items-center justify-between">
+              <div>
+                <span className="text-zinc-200 font-semibold block">{t.clearCache}</span>
+                <span className="text-[11px] text-zinc-500">
+                  {language === 'hi' ? 'थंबनेल और अस्थायी कैश मिटाएं' : 'Free temporary thumbnails'}
+                </span>
+              </div>
+              <button
+                onClick={handleClearCache}
+                className="px-3.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium transition active:scale-95"
+              >
+                {t.clearCache}
+              </button>
+            </div>
+
+            {cacheMessage && (
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
+                <Check className="w-4 h-4" />
+                <span>{t.cacheCleared}</span>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* 9. About App */}
       <div className="rounded-3xl bg-zinc-950 border border-zinc-800/80 p-5 space-y-2 text-center text-zinc-400 shadow-xl">

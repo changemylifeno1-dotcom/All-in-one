@@ -12,6 +12,7 @@ import { VideoPlayerView } from './components/player/VideoPlayerView';
 import { FileDetailsModal } from './components/files/FileDetailsModal';
 import { APKDownloadModal } from './components/apk/APKDownloadModal';
 import { SettingsView } from './components/settings/SettingsView';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { CheckCircle2 } from 'lucide-react';
 import { useEffect } from 'react';
 
@@ -93,8 +94,10 @@ const AppContent: React.FC = () => {
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }

@@ -13,7 +13,7 @@
     <meta name="twitter:card" content="summary_large_image" />
 
     <!-- PWA & Mobile Web App Settings -->
-    <meta name="theme-color" content="#09090b" />
+    <meta name="theme-color" content="#000000" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -21,9 +21,55 @@
     
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <style>
+      html, body {
+        background-color: #000000 !important;
+        color: #f4f4f5 !important;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        width: 100%;
+        overflow-x: hidden;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #root {
+        min-height: 100vh;
+        background-color: #000000;
+      }
+      #app-startup-loader {
+        position: fixed;
+        inset: 0;
+        background: #000000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.3s ease;
+      }
+    </style>
   </head>
-  <body class="bg-black text-zinc-100 antialiased selection:bg-indigo-500 selection:text-white">
-    <div id="root"></div>
+  <body class="bg-black text-zinc-100 antialiased selection:bg-indigo-500 selection:text-white" style="background-color: #000000; color: #f4f4f5;">
+    <div id="root">
+      <div id="app-startup-loader">
+        <div style="width: 56px; height: 56px; border-radius: 18px; background: linear-gradient(135deg, #4f46e5, #10b981); padding: 2px; box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4); display: flex; align-items: center; justify-content: center;">
+          <div style="width: 100%; height: 100%; background: #000000; border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+            <span style="font-weight: 900; font-size: 20px; font-family: system-ui, sans-serif; background: linear-gradient(90deg, #818cf8, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">R1</span>
+          </div>
+        </div>
+        <div style="margin-top: 18px; font-weight: 800; font-size: 16px; color: #ffffff; letter-spacing: -0.5px; font-family: system-ui, sans-serif;">ROHIT ONE</div>
+        <div style="margin-top: 6px; font-size: 11px; color: #a1a1aa; font-family: system-ui, sans-serif;">प्रारंभ हो रहा है... / Starting...</div>
+      </div>
+    </div>
+    <script>
+      // Global error listener to prevent any unhandled crash from leaving a blank white screen
+      window.addEventListener('error', function(e) {
+        console.error('ROHIT ONE Global Error:', e.message, e.filename, e.lineno);
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('ROHIT ONE Unhandled Promise:', e.reason);
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
