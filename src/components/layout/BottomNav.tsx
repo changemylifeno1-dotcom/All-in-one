@@ -9,18 +9,18 @@ import {
   FileText, 
   Folder, 
   Shield, 
-  Settings,
-  Download
+  Settings
 } from 'lucide-react';
 
 export const BottomNav: React.FC = () => {
-  const { activeTab, setActiveTab, t, setIsAPKModalOpen } = useApp();
+  const { activeTab, setActiveTab, t } = useApp();
 
   const navItems: { tab: ActiveTab; label: string; icon: React.FC<{ className?: string }> }[] = [
     { tab: 'home', label: t.home, icon: Home },
     { tab: 'videos', label: t.videos, icon: Film },
     { tab: 'photos', label: t.photos, icon: ImageIcon },
     { tab: 'music', label: t.music, icon: Music },
+    { tab: 'documents', label: t.documents || 'दस्तावेज़', icon: FileText },
     { tab: 'files', label: t.allFiles, icon: Folder },
     { tab: 'vault', label: t.vault, icon: Shield },
     { tab: 'settings', label: t.settings, icon: Settings },
@@ -36,7 +36,7 @@ export const BottomNav: React.FC = () => {
             <button
               key={item.tab}
               onClick={() => setActiveTab(item.tab)}
-              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-200 relative ${
+              className={`flex flex-col items-center justify-center py-1 px-1.5 sm:px-2 rounded-xl transition-all duration-200 relative ${
                 isActive 
                   ? 'text-indigo-400 font-bold scale-105' 
                   : 'text-zinc-400 hover:text-zinc-200'
@@ -52,19 +52,6 @@ export const BottomNav: React.FC = () => {
             </button>
           );
         })}
-
-        {/* Floating Quick APK Center Icon */}
-        <button
-          onClick={() => setIsAPKModalOpen(true)}
-          className="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-emerald-400 hover:text-emerald-300 transition"
-          title="Build / Download APK"
-        >
-          <div className="relative">
-            <Download className="w-5 h-5 text-emerald-400" />
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-400 rounded-full animate-ping" />
-          </div>
-          <span className="text-[10px] mt-0.5 font-bold">APK</span>
-        </button>
       </div>
     </nav>
   );

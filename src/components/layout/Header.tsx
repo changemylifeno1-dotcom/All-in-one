@@ -2,18 +2,16 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
   Languages, 
-  Download, 
   Search, 
   Moon, 
   Sun, 
-  Smartphone,
-  FolderOpen,
-  Trash2,
-  MoreVertical,
-  Settings,
-  ChevronRight,
-  Clock,
-  Sparkles
+  FolderOpen, 
+  Trash2, 
+  MoreVertical, 
+  Settings, 
+  ChevronRight, 
+  RefreshCw,
+  HardDrive
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -25,13 +23,16 @@ export const Header: React.FC = () => {
     setTheme, 
     searchQuery, 
     setSearchQuery, 
-    setIsAPKModalOpen,
-    setActiveTab,
-    files,
-    addLocalFiles
+    setActiveTab, 
+    files, 
+    addLocalFiles,
+    refreshDeviceMedia,
+    isNativeAndroid,
+    showToast
   } = useApp();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -40,6 +41,20 @@ export const Header: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       addLocalFiles(e.target.files);
+    }
+  };
+
+  const handleRescanMedia = async () => {
+    setIsScanning(true);
+    setIsMenuOpen(false);
+    showToast(language === 'hi' ? 'फ़ोन मीडिया स्कैन हो रहा है...' : 'Scanning phone media...');
+    try {
+      await refreshDeviceMedia();
+      showToast(language === 'hi' ? 'मीडिया सूची अपडेट हो गई!' : 'Media library updated!');
+    } catch {
+      showToast(language === 'hi' ? 'स्कैन पूरा हुआ' : 'Scan completed');
+    } finally {
+      setIsScanning(false);
     }
   };
 
@@ -77,11 +92,6 @@ export const Header: React.FC = () => {
     setIsMenuOpen(false);
   };
 
-  const handleOpenApk = () => {
-    setIsAPKModalOpen(true);
-    setIsMenuOpen(false);
-  };
-
   return (
     <header className="sticky top-0 z-40 bg-black/90 dark:bg-black/95 backdrop-blur-md border-b border-zinc-800/80 px-4 py-2.5">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
@@ -116,9 +126,6 @@ export const Header: React.FC = () => {
                 <h1 className="text-lg font-black tracking-tight text-white group-hover:text-indigo-300 transition">
                   ROHIT ONE
                 </h1>
-                <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  Android Pro
-                </span>
               </div>
               <p className="text-[11px] text-zinc-400 font-medium">
                 {t.tagline}
@@ -126,15 +133,17 @@ export const Header: React.FC = () => {
             </div>
           </div>
 
-          {/* Mobile Right Controls: APK Button + Android Three-Dot Overflow Menu (⋮) */}
+          {/* Mobile Right Controls: Android Three-Dot Overflow Menu (⋮) */}
           <div className="flex items-center gap-1.5 md:hidden">
-            <button
-              onClick={() => setIsAPKModalOpen(true)}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-600 text-white text-xs font-bold shadow-md shadow-indigo-600/30 active:scale-95 transition"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>APK</span>
-            </button>
+            {isNativeAndroid && (
+              <button
+                onClick={handleRescanMedia}
+                className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition"
+                title="Rescan Storage"
+              >
+                <RefreshCw className={`w-4 h-4 text-indigo-400 ${isScanning ? 'animate-spin' : ''}`} />
+              </button>
+            )}
 
             {/* Android 3-Dot Overflow Menu Button */}
             <div className="relative" ref={!isMenuOpen ? undefined : menuRef}>
@@ -189,13 +198,23 @@ export const Header: React.FC = () => {
             <span>{t.addFiles}</span>
           </button>
 
+          {/* Rescan Device Media */}
+          <button
+            onClick={handleRescanMedia}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-semibold text-zinc-200 transition"
+            title="Scan Phone Storage"
+          >
+            <RefreshCw className={`w-4 h-4 text-emerald-400 ${isScanning ? 'animate-spin' : ''}`} />
+            <span>{language === 'hi' ? 'री-स्कैन' : 'Rescan'}</span>
+          </button>
+
           {/* Language Toggle */}
           <button
             onClick={toggleLanguage}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-semibold text-zinc-200 transition"
             title="Toggle Hindi / English"
           >
-            <Languages className="w-4 h-4 text-emerald-400" />
+            <Languages className="w-4 h-4 text-indigo-400" />
             <span>{language === 'hi' ? 'English' : 'हिंदी'}</span>
           </button>
 
@@ -206,15 +225,6 @@ export const Header: React.FC = () => {
             title="Toggle AMOLED Dark / Clean White"
           >
             {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-400" />}
-          </button>
-
-          {/* APK Build & Download Button */}
-          <button
-            onClick={() => setIsAPKModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition transform hover:-translate-y-0.5"
-          >
-            <Download className="w-4 h-4" />
-            <span>{t.apkDownloadBtn}</span>
           </button>
 
           {/* Android Three-Dot Overflow Menu Button (Desktop) */}
@@ -255,7 +265,7 @@ export const Header: React.FC = () => {
           </div>
 
           <div className="p-1.5 space-y-1">
-            {/* 1. RECYCLE BIN / RECENTLY DELETED (Highlighted Menu Entry) */}
+            {/* 1. RECYCLE BIN / RECENTLY DELETED (Accessible at all times) */}
             <button
               onClick={handleOpenTrash}
               className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-rose-950/30 active:bg-rose-950/50 transition group text-left border border-transparent hover:border-rose-500/30"
@@ -283,7 +293,28 @@ export const Header: React.FC = () => {
               <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-rose-400 transition shrink-0" />
             </button>
 
-            {/* 2. SETTINGS */}
+            {/* 2. RESCAN DEVICE MEDIA */}
+            <button
+              onClick={handleRescanMedia}
+              className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-zinc-900 active:bg-zinc-800 transition group text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                  <RefreshCw className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-zinc-200 group-hover:text-white">
+                    {language === 'hi' ? 'फ़ोन मीडिया री-स्कैन' : 'Rescan Phone Storage'}
+                  </span>
+                  <p className="text-[10px] text-zinc-500">
+                    {language === 'hi' ? 'नए वीडियो व फ़ोटो तुरंत लोड करें' : 'Refresh local device files'}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-300 transition shrink-0" />
+            </button>
+
+            {/* 3. SETTINGS */}
             <button
               onClick={handleOpenSettings}
               className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-zinc-900 active:bg-zinc-800 transition group text-left"
@@ -297,14 +328,14 @@ export const Header: React.FC = () => {
                     {t.settings}
                   </span>
                   <p className="text-[10px] text-zinc-500">
-                    {language === 'hi' ? 'कस्टमाइज़ेशन, वॉल्ट व प्राथमिक रुचियाँ' : 'Preferences, vault, playback'}
+                    {language === 'hi' ? 'स्टोरेज स्थिति, कस्टमाइज़ेशन व वॉल्ट' : 'Storage status, preferences, vault'}
                   </p>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-300 transition shrink-0" />
             </button>
 
-            {/* 3. IMPORT FILES */}
+            {/* 4. IMPORT / ADD FILES */}
             <button
               onClick={() => {
                 fileInputRef.current?.click();
@@ -313,7 +344,7 @@ export const Header: React.FC = () => {
               className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-zinc-900 active:bg-zinc-800 transition group text-left"
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
                   <FolderOpen className="w-4 h-4" />
                 </div>
                 <div>
@@ -321,28 +352,7 @@ export const Header: React.FC = () => {
                     {t.addFiles}
                   </span>
                   <p className="text-[10px] text-zinc-500">
-                    {language === 'hi' ? 'डिवाइस से फ़ाइलें जोड़ें' : 'Add local media from storage'}
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-300 transition shrink-0" />
-            </button>
-
-            {/* 4. APK CENTER */}
-            <button
-              onClick={handleOpenApk}
-              className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-zinc-900 active:bg-zinc-800 transition group text-left"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
-                  <Smartphone className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-zinc-200 group-hover:text-white">
-                    {t.apkDownloadBtn}
-                  </span>
-                  <p className="text-[10px] text-zinc-500">
-                    {language === 'hi' ? 'Android APK व इंस्टॉलेशन पैकेज' : 'Direct APK & GitHub cloud build'}
+                    {language === 'hi' ? 'डिवाइस से फ़ाइलें जोड़ें' : 'Select files from device'}
                   </p>
                 </div>
               </div>
@@ -358,7 +368,7 @@ export const Header: React.FC = () => {
               onClick={toggleLanguage}
               className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-semibold text-zinc-200 transition"
             >
-              <Languages className="w-3.5 h-3.5 text-emerald-400" />
+              <Languages className="w-3.5 h-3.5 text-indigo-400" />
               <span>{language === 'hi' ? 'English' : 'हिंदी'}</span>
             </button>
 

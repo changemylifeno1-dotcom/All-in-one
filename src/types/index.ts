@@ -78,3 +78,25 @@ export interface AppSettings {
   autoEmptyTrash: boolean;
   cacheAutoClean: boolean;
 }
+
+export interface DeviceStorageStats {
+  totalStorage: number;
+  freeStorage: number;
+  usedStorage: number;
+  totalRam: number;
+  freeRam: number;
+  usedRam: number;
+}
+
+declare global {
+  interface Window {
+    RohitNativeBridge?: {
+      isNativeAndroid: () => boolean;
+      checkStoragePermissions: () => boolean;
+      requestStoragePermissions: () => void;
+      getDeviceMedia: (category: string) => string;
+      getStorageStats: () => string;
+      deleteMediaItem: (contentUri: string) => boolean;
+    };
+  }
+}

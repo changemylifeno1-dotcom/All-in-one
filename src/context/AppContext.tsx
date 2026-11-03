@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { MediaItem, ActiveTab, ThemeMode, AppLanguage, AppSettings, AccentColor } from '../types';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { MediaItem, ActiveTab, ThemeMode, AppLanguage, AppSettings, DeviceStorageStats } from '../types';
 import { initialMediaItems } from '../data/mockData';
 import { translations, Translations } from '../i18n/translations';
 
@@ -40,8 +40,15 @@ interface AppContextType {
   addLocalFiles: (newFiles: FileList | File[]) => void;
   addMediaItem: (item: MediaItem) => void;
   
+  // Real Device Native Bridge Integration
+  isNativeAndroid: boolean;
+  hasStoragePermission: boolean;
+  requestStoragePermission: () => void;
+  refreshDeviceMedia: () => Promise<void>;
+  deviceStorageStats: DeviceStorageStats | null;
+  
   // Recycle Bin / Trash System
-  deleteFile: (id: string) => void; // Moves to Recycle Bin by default!
+  deleteFile: (id: string) => void; // Moves to Recycle Bin by default
   moveToTrash: (id: string) => void;
   restoreFromTrash: (id: string) => void;
   restoreAllTrash: () => void;
@@ -116,13 +123,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('rohit_one_files');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Clean out legacy demo items if previously stored in localStorage
+        const filtered = Array.isArray(parsed) 
+          ? parsed.filter((item: MediaItem) => !item.id?.startsWith('vid-1') && !item.id?.startsWith('demo-') && !item.id?.startsWith('trash-demo-'))
+          : [];
+        return filtered;
       } catch {
         return initialMediaItems;
       }
     }
     return initialMediaItems;
   });
+
+  // Real Device Native Bridge State
+  const [isNativeAndroid, setIsNativeAndroid] = useState<boolean>(false);
+  const [hasStoragePermission, setHasStoragePermission] = useState<boolean>(true);
+  const [deviceStorageStats, setDeviceStorageStats] = useState<DeviceStorageStats | null>(null);
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [activeVideo, setActiveVideo] = useState<MediaItem | null>(null);
@@ -141,12 +158,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAPKModalOpen, setIsAPKModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const showToast = (msg: string) => {
+  const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
     setTimeout(() => {
       setToastMessage(prev => prev === msg ? null : prev);
     }, 3500);
-  };
+  }, []);
 
   // Sync language
   useEffect(() => {
@@ -177,7 +194,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     document.documentElement.setAttribute('data-accent', settings.accentColor);
   }, [settings]);
 
-  // Save files to localStorage
+  // Save user files (local additions, vault status, deleted status) to localStorage
   useEffect(() => {
     try {
       localStorage.setItem('rohit_one_files', JSON.stringify(files));
@@ -185,6 +202,91 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Storage quota exceeded or disabled
     }
   }, [files]);
+
+  // Refresh Real Device Media from Native Android Bridge
+  const refreshDeviceMedia = useCallback(async () => {
+    if (typeof window !== 'undefined' && window.RohitNativeBridge) {
+      try {
+        setIsNativeAndroid(true);
+        const permGranted = window.RohitNativeBridge.checkStoragePermissions();
+        setHasStoragePermission(permGranted);
+
+        // Fetch real device storage & RAM status
+        const statsStr = window.RohitNativeBridge.getStorageStats();
+        if (statsStr) {
+          try {
+            const stats = JSON.parse(statsStr);
+            if (stats.totalStorage) {
+              setDeviceStorageStats(stats);
+            }
+          } catch {
+            // Stats parse failure
+          }
+        }
+
+        if (permGranted) {
+          const jsonStr = window.RohitNativeBridge.getDeviceMedia('all');
+          if (jsonStr) {
+            const deviceFiles = JSON.parse(jsonStr) as MediaItem[];
+            
+            // Merge with local state (preserving vault, favorite, trash status)
+            setFiles(prev => {
+              const stateMap = new Map<string, { isInVault?: boolean; isFavorite?: boolean; isDeleted?: boolean; deletedAt?: string; originalFolder?: string }>();
+              prev.forEach(f => {
+                if (f.isInVault || f.isFavorite || f.isDeleted) {
+                  stateMap.set(f.id, {
+                    isInVault: f.isInVault,
+                    isFavorite: f.isFavorite,
+                    isDeleted: f.isDeleted,
+                    deletedAt: f.deletedAt,
+                    originalFolder: f.originalFolder,
+                  });
+                }
+              });
+
+              // Apply existing flags to newly scanned items
+              const mergedDeviceFiles = deviceFiles.map(df => {
+                const existing = stateMap.get(df.id);
+                if (existing) {
+                  return { ...df, ...existing };
+                }
+                return df;
+              });
+
+              // Also keep any purely custom local imported files (e.g. added via picker)
+              const customLocalFiles = prev.filter(f => f.id.startsWith('local-'));
+              return [...customLocalFiles, ...mergedDeviceFiles];
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to query device media:', err);
+      }
+    }
+  }, []);
+
+  const requestStoragePermission = useCallback(() => {
+    if (typeof window !== 'undefined' && window.RohitNativeBridge) {
+      window.RohitNativeBridge.requestStoragePermissions();
+    }
+  }, []);
+
+  // Initialize native device integration and register permission update listener
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.RohitNativeBridge) {
+      setIsNativeAndroid(true);
+      refreshDeviceMedia();
+    }
+
+    const handlePermissionsUpdated = () => {
+      refreshDeviceMedia();
+    };
+
+    window.addEventListener('rohit-permissions-updated', handlePermissionsUpdated);
+    return () => {
+      window.removeEventListener('rohit-permissions-updated', handlePermissionsUpdated);
+    };
+  }, [refreshDeviceMedia]);
 
   // AUTOMATIC 30-DAY RETENTION EXPIRATION CHECK
   useEffect(() => {
@@ -199,7 +301,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const deletedTime = new Date(file.deletedAt).getTime();
           if (now - deletedTime >= retentionMs) {
             expiredCount++;
-            return false; // Automatically permanently delete expired items after 30 days!
+            return false; // Automatically permanently delete expired items after 30 days
           }
         }
         return true;
@@ -212,13 +314,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return updated;
     });
-  }, [settings.trashRetentionDays]);
+  }, [settings.trashRetentionDays, language, showToast]);
 
   const updateSettings = (partial: Partial<AppSettings>) => {
-    setSettings(prev => {
-      const next = { ...prev, ...partial };
-      return next;
-    });
+    setSettings(prev => ({ ...prev, ...partial }));
     showToast(translations[language].settingsSaved);
   };
 
@@ -293,7 +392,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addMediaItem = (item: MediaItem) => {
     setFiles(prev => [item, ...prev]);
-    showToast(language === 'hi' ? 'फ़ोटो की कॉपी सहेजी गई' : 'Photo copy saved');
+    showToast(language === 'hi' ? 'फ़ाइल सहेजी गई' : 'File saved');
   };
 
   // 1. Move to Recycle Bin (30-day retention)
@@ -314,7 +413,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Alias deleteFile to moveToTrash per requirement:
-  // "Whenever a user deletes a video, photo, audio file or document through ROHIT ONE, move it to the Recycle Bin instead of permanently deleting it."
   const deleteFile = (id: string) => {
     moveToTrash(id);
   };
@@ -395,6 +493,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         files,
         addLocalFiles,
         addMediaItem,
+        isNativeAndroid,
+        hasStoragePermission,
+        requestStoragePermission,
+        refreshDeviceMedia,
+        deviceStorageStats,
         deleteFile,
         moveToTrash,
         restoreFromTrash,

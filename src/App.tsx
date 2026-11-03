@@ -10,11 +10,9 @@ import { RecycleBinView } from './components/files/RecycleBinView';
 import { DocumentReaderView } from './components/documents/DocumentReaderView';
 import { VideoPlayerView } from './components/player/VideoPlayerView';
 import { FileDetailsModal } from './components/files/FileDetailsModal';
-import { APKDownloadModal } from './components/apk/APKDownloadModal';
 import { SettingsView } from './components/settings/SettingsView';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { CheckCircle2 } from 'lucide-react';
-import { useEffect } from 'react';
 
 const AppContent: React.FC = () => {
   const { 
@@ -24,19 +22,8 @@ const AppContent: React.FC = () => {
     activeDoc, 
     setActiveDoc,
     theme,
-    toastMessage,
-    setIsAPKModalOpen
+    toastMessage
   } = useApp();
-
-  // Check URL parameters for direct install center trigger
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('install') === '1' || params.has('apk')) {
-        setIsAPKModalOpen(true);
-      }
-    }
-  }, [setIsAPKModalOpen]);
 
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-black text-zinc-100' : 'bg-slate-50 text-zinc-900'} flex flex-col transition-colors duration-200`}>
@@ -85,9 +72,6 @@ const AppContent: React.FC = () => {
 
       {/* File Details Modal */}
       <FileDetailsModal />
-
-      {/* APK Build & Download Center Modal */}
-      <APKDownloadModal />
     </div>
   );
 };

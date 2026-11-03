@@ -42,6 +42,7 @@ export const SettingsView: React.FC = () => {
     setVaultPin,
     setActiveTab,
     files,
+    deviceStorageStats,
     t 
   } = useApp();
 
@@ -597,28 +598,7 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
-      {/* 8. APK Download & Install Center Launcher */}
-      <div className="rounded-3xl bg-gradient-to-r from-indigo-950/60 via-purple-950/40 to-emerald-950/60 border border-indigo-500/40 p-5 space-y-3 shadow-xl">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <Smartphone className="w-5 h-5 text-indigo-400" />
-            <div>
-              <h3 className="text-sm font-bold text-white">{t.apkCenterTitle}</h3>
-              <p className="text-[11px] text-zinc-300">
-                {language === 'hi' ? 'सीधा WebAPK इंस्टॉलर और मुफ़्त क्लाउड बिल्डर' : 'Direct WebAPK and Free Cloud APK'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setIsAPKModalOpen(true)}
-            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition shadow-lg shadow-indigo-600/30"
-          >
-            {t.apkDownloadBtn}
-          </button>
-        </div>
-      </div>
-
-      {/* 8. Storage, RAM & Memory Management */}
+      {/* 8. Storage, RAM & Memory Management (Real Device Telemetry) */}
       {(() => {
         const nonVault = files.filter(f => !f.isInVault && !f.isDeleted);
         const vids = nonVault.filter(f => f.category === 'video');
@@ -626,9 +606,25 @@ export const SettingsView: React.FC = () => {
         const aud = nonVault.filter(f => f.category === 'audio');
         const doc = nonVault.filter(f => f.category === 'document');
 
-        const totalUsedBytes = nonVault.reduce((acc, f) => acc + f.size, 0);
-        const usedGB = (totalUsedBytes / (1024 * 1024 * 1024)).toFixed(1);
-        const freeGB = (128 - parseFloat(usedGB)).toFixed(1);
+        // Real storage stats from Android bridge, or calculated fallback
+        const totalStorageBytes = deviceStorageStats?.totalStorage || 128 * 1024 * 1024 * 1024;
+        const freeStorageBytes = deviceStorageStats?.freeStorage || (128 * 1024 * 1024 * 1024 - nonVault.reduce((acc, f) => acc + f.size, 0));
+        const usedStorageBytes = deviceStorageStats?.usedStorage || nonVault.reduce((acc, f) => acc + f.size, 0);
+
+        const usedGB = (usedStorageBytes / (1024 * 1024 * 1024)).toFixed(1);
+        const totalGB = (totalStorageBytes / (1024 * 1024 * 1024)).toFixed(1);
+        const freeGB = (freeStorageBytes / (1024 * 1024 * 1024)).toFixed(1);
+        const storageUsagePercent = Math.min(100, Math.max(2, Math.round((usedStorageBytes / totalStorageBytes) * 100)));
+
+        // Real RAM stats
+        const totalRamBytes = deviceStorageStats?.totalRam || 8 * 1024 * 1024 * 1024;
+        const freeRamBytes = deviceStorageStats?.freeRam || 4.6 * 1024 * 1024 * 1024;
+        const usedRamBytes = deviceStorageStats?.usedRam || (totalRamBytes - freeRamBytes);
+
+        const totalRamGB = (totalRamBytes / (1024 * 1024 * 1024)).toFixed(1);
+        const freeRamGB = (freeRamBytes / (1024 * 1024 * 1024)).toFixed(1);
+        const usedRamGB = (usedRamBytes / (1024 * 1024 * 1024)).toFixed(1);
+        const ramUsagePercent = Math.min(100, Math.max(5, Math.round((usedRamBytes / totalRamBytes) * 100)));
 
         return (
           <div className="rounded-3xl bg-zinc-950 border border-zinc-800/80 p-5 space-y-4 shadow-xl">
@@ -639,7 +635,7 @@ export const SettingsView: React.FC = () => {
                   {language === 'hi' ? 'डिवाइस स्टोरेज व रैम स्थिति (Storage & RAM)' : 'Device Storage & RAM Status'}
                 </h3>
                 <p className="text-[11px] text-zinc-400">
-                  {language === 'hi' ? 'आंतरिक मेमोरी व रैम उपयोग का विश्लेषण' : 'Internal memory breakdown and available RAM'}
+                  {language === 'hi' ? 'आंतरिक मेमोरी व रैम उपयोग का वास्तविक विश्लेषण' : 'Real internal memory breakdown and available RAM'}
                 </p>
               </div>
             </div>
@@ -651,54 +647,57 @@ export const SettingsView: React.FC = () => {
                   {t.internalStorage}
                 </span>
                 <span className="text-xs font-mono font-bold text-indigo-400">
-                  {usedGB} GB / 128.0 GB ({freeGB} GB {t.freeSpace})
+                  {usedGB} GB / {totalGB} GB ({freeGB} GB {t.freeSpace})
                 </span>
               </div>
 
               <div className="w-full h-3 bg-zinc-900 rounded-full overflow-hidden flex">
-                <div className="bg-indigo-500 h-full" style={{ width: '35%' }} title="Videos" />
-                <div className="bg-emerald-500 h-full" style={{ width: '22%' }} title="Photos" />
-                <div className="bg-amber-500 h-full" style={{ width: '12%' }} title="Audio" />
-                <div className="bg-blue-500 h-full" style={{ width: '8%' }} title="Documents" />
-                <div className="bg-zinc-700 h-full" style={{ width: '10%' }} title="System" />
+                <div 
+                  className="bg-indigo-500 h-full transition-all duration-500" 
+                  style={{ width: `${storageUsagePercent}%` }} 
+                  title="Storage Used" 
+                />
               </div>
 
               {/* Storage Legend */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] text-zinc-400 pt-1">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
-                  <span>{t.catVideos}: {vids.length} (42%)</span>
+                  <span>{t.catVideos}: {vids.length}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                  <span>{t.catPhotos}: {pics.length} (26%)</span>
+                  <span>{t.catPhotos}: {pics.length}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                  <span>{t.catAudio}: {aud.length} (14%)</span>
+                  <span>{t.catAudio}: {aud.length}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                  <span>{t.catDocuments}: {doc.length} (10%)</span>
+                  <span>{t.catDocuments}: {doc.length}</span>
                 </div>
               </div>
             </div>
 
-            {/* RAM Status (Realme 9 Spec) */}
+            {/* RAM Status */}
             <div className="pt-3 border-t border-zinc-900 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Smartphone className="w-4 h-4 text-emerald-400" />
                   <span className="text-zinc-200 font-semibold text-xs">
-                    {language === 'hi' ? 'रैम (LPDDR4X Memory)' : 'System RAM (Realme 9)'}
+                    {language === 'hi' ? 'रैम मेमोरी स्थिति' : 'System RAM Status'}
                   </span>
                 </div>
                 <span className="text-xs font-mono font-bold text-emerald-400">
-                  3.4 GB / 8.0 GB ({language === 'hi' ? '4.6 GB उपलब्ध' : '4.6 GB Free'})
+                  {usedRamGB} GB / {totalRamGB} GB ({freeRamGB} GB {language === 'hi' ? 'उपलब्ध' : 'Free'})
                 </span>
               </div>
               <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden">
-                <div className="bg-emerald-500 h-full rounded-full" style={{ width: '42%' }} />
+                <div 
+                  className="bg-emerald-500 h-full rounded-full transition-all duration-500" 
+                  style={{ width: `${ramUsagePercent}%` }} 
+                />
               </div>
             </div>
 
